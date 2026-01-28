@@ -12,6 +12,13 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+# ---------------- SIDEBAR MENU ----------------
+st.sidebar.title("📌 Navigation")
+menu = st.sidebar.radio(
+    "Go to",
+    ["Overview", "EDA", "Model Metrics", "Prediction"]
+)
+
 
 # ---------------- LOAD DATA ----------------
 @st.cache_data
