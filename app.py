@@ -1,124 +1,121 @@
 import streamlit as st
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+import joblib
+from PIL import Image
 
+# ---------------- PAGE CONFIG ----------------
 st.set_page_config(
     page_title="Loan Approval Prediction System",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-st.title("🏦 Loan Approval Prediction System")
+# ---------------- LOAD DATA ----------------
+@st.cache_data
+def load_data():
+    df = pd.read_csv("loan_approval_dataset.csv")
+    df.columns = df.columns.str.strip()
+    return df
 
-st.markdown("""
-### End-to-End Machine Learning Project
+df = load_data()
+# ---------------- SIDEBAR NAVIGATION ----------------
+st.sidebar.title("📂 Navigation")
 
-This application predicts whether a loan will be *Approved* or *Rejected* using
-classification models trained on historical banking data.
+menu = st.sidebar.radio(
+    "Go to",
+    ["Overview", "EDA", "Model Metrics", "Prediction"]
+)
+# ---------------- OVERVIEW PAGE ----------------
+if menu == "Overview":
+    st.title("🏦 Loan Approval Prediction System")
 
-Use the sidebar to navigate through:
-- 📌 Overview  
-- 📊 EDA  
-- 📈 Model Metrics  
-- 🔮 Prediction  
-""")
-import streamlit as st
-import pandas as pd
+    st.markdown("""
+    ### End-to-End Machine Learning Project
+    This application predicts whether a loan will be **Approved** or **Rejected**
+    using Machine Learning classification models.
+    """)
 
-st.title("📌 Project Overview")
+    st.subheader("📌 Dataset Summary")
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Total Rows", df.shape[0])
+    col2.metric("Total Columns", df.shape[1])
+    col3.metric("Missing Values", df.isnull().sum().sum())
 
-st.markdown("""
-### Problem Statement
-Banks need to decide whether a loan applicant is likely to repay the loan.
-Manual decisions are subjective and slow.  
-This project uses Machine Learning to automate the *Loan Approval Prediction* process.
+    st.subheader("📄 Dataset Preview")
+    st.dataframe(df.head(20))
 
-### Objective
-Predict whether a loan will be:
-- *Approved (1)*
-- *Rejected (0)*
-""")
+    st.subheader("📊 Summary Statistics")
+    st.dataframe(df.describe())
 
-df = pd.read_csv("loan_approval_dataset.csv")
-df.columns = df.columns.str.strip()
 
-st.subheader("Dataset Summary")
-col1, col2, col3 = st.columns(3)
-col1.metric("Total Rows", df.shape[0])
-col2.metric("Total Columns", df.shape[1])
-col3.metric("Missing Values", df.isnull().sum().sum())
+# ---------------- EDA PAGE ----------------
+elif menu == "EDA":
+    st.title("📊 Exploratory Data Analysis")
 
-st.subheader("Dataset Preview (Top 20 Rows)")
-st.dataframe(df.head(20))
+    st.subheader("Loan Status Distribution")
+    fig1, ax1 = plt.subplots()
+    sns.countplot(x="loan_status", data=df, ax=ax1)
+    st.pyplot(fig1)
 
-st.subheader("Summary Statistics")
-st.dataframe(df.describe())
-import streamlit as st
-import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
+    st.subheader("Correlation Heatmap")
 
-st.title("📊 Exploratory Data Analysis")
+    # Select numeric columns only
+    numeric_df = df.select_dtypes(include=["int64", "float64"])
+    numeric_df = numeric_df.drop("loan_status", axis=1, errors="ignore")
 
-df = pd.read_csv("loan_approval_dataset.csv")
-df.columns = df.columns.str.strip()
+    fig2, ax2 = plt.subplots(figsize=(10, 6))
+    sns.heatmap(numeric_df.corr(), annot=True, cmap="coolwarm", ax=ax2)
+    st.pyplot(fig2)
 
-st.subheader("Loan Status Distribution")
-fig1, ax1 = plt.subplots()
-sns.countplot(x="loan_status", data=df, ax=ax1)
-st.pyplot(fig1)
+    st.subheader("📌 Key Insights")
+    st.markdown("""
+    - Higher **CIBIL score** increases approval probability  
+    - Higher **income & assets** lead to better approval chances  
+    - Asset features show correlation → tree models are suitable  
+    """)
 
-st.subheader("Correlation Heatmap")
-fig2, ax2 = plt.subplots(figsize=(10,6))
-sns.heatmap(df.drop("loan_status", axis=1).corr(), annot=True, cmap="coolwarm", ax=ax2)
-st.pyplot(fig2)
 
-st.subheader("Key Insights")
-st.markdown("""
-- Higher *CIBIL score* leads to higher loan approval probability  
-- Higher *income and asset values* increase approval chances  
-- *Education* and *self-employment* have moderate impact  
-- Asset features are correlated, justifying tree-based models
-""")
-import streamlit as st
-import pandas as pd
-from PIL import Image
+# ---------------- MODEL METRICS PAGE ----------------
+elif menu == "Model Metrics":
+    st.title("📈 Model Performance & Evaluation")
 
-st.title("📈 Model Performance & Evaluation")
+    metrics = pd.read_csv("model_metrics.csv")
+    st.subheader("Model Comparison")
+    st.dataframe(metrics)
 
-metrics = pd.read_csv("model_metrics.csv")
-st.subheader("Model Comparison Table")
-st.dataframe(metrics)
+    st.subheader("Confusion Matrix")
+    st.image("confusion_matrix.png", use_column_width=True)
 
-st.subheader("Confusion Matrix")
-st.image(Image.open("confusion_matrix.png"), use_column_width=True)
+    st.subheader("ROC Curve")
+    st.image("roc_curve.png", use_column_width=True)
+# ---------------- PREDICTION PAGE ----------------
+elif menu == "Prediction":
+    st.title("🔮 Loan Approval Prediction")
 
-st.subheader("ROC Curve")
-st.image(Image.open("roc_curve.png"), use_column_width=True)
-import streamlit as st
-import joblib
-import numpy as np
+    model = joblib.load("loan_approval_model.pkl")
+    scaler = joblib.load("scaler.pkl")
+    features = joblib.load("features.pkl")
 
-st.title("🔮 Loan Approval Prediction")
+    st.subheader("Enter Applicant Details")
 
-model = joblib.load("loan_approval_model.pkl")
-scaler = joblib.load("scaler.pkl")
-features = joblib.load("features.pkl")
+    user_input = []
+    for feature in features:
+        value = st.number_input(feature, value=0.0)
+        user_input.append(value)
 
-st.subheader("Enter Applicant Details")
+    if st.button("Predict Loan Status"):
+        input_array = np.array(user_input).reshape(1, -1)
+        input_scaled = scaler.transform(input_array)
 
-user_input = []
-for feature in features:
-    value = st.number_input(feature, value=0.0)
-    user_input.append(value)
+        prediction = model.predict(input_scaled)[0]
+        probability = model.predict_proba(input_scaled)[0][1]
 
-if st.button("Predict Loan Status"):
-    input_array = np.array(user_input).reshape(1, -1)
-    input_scaled = scaler.transform(input_array)
-    probability = model.predict_proba(input_scaled)[0][1]
-    prediction = model.predict(input_scaled)[0]
+        st.write(f"### Approval Probability: {probability:.2f}")
 
-    st.write(f"### Approval Probability: {probability:.2f}")
-
-    if prediction == 1:
-        st.success("Loan Approved ✅")
-    else:
-        st.error("Loan Rejected ❌")
+        if prediction == 1:
+            st.success("Loan Approved ✅")
+        else:
+            st.error("Loan Rejected ❌")
