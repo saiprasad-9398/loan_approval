@@ -21,13 +21,7 @@ def load_data():
     return df
 
 df = load_data()
-# ---------------- SIDEBAR NAVIGATION ----------------
-st.sidebar.title("📂 Navigation")
 
-menu = st.sidebar.radio(
-    "Go to",
-    ["Overview", "EDA", "Model Metrics", "Prediction"]
-)
 # ---------------- OVERVIEW PAGE ----------------
 if menu == "Overview":
     st.title("🏦 Loan Approval Prediction System")
